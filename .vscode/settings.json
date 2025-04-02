@@ -1,0 +1,9 @@
+{
+    "editor.cursorBlinking": "blink",
+    "editor.cursorSurroundingLinesStyle": "default",
+    "editor.cursorStyle": "line",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "files.autoSave": "onWindowChange"
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:second_mind/data/database.dart';
+import 'package:second_mind/models/tasks.dart';
 import 'package:second_mind/theme_provider.dart';
 import 'package:second_mind/utils/dialog_box.dart';
 import 'package:second_mind/utils/todo_tile.dart';
@@ -14,44 +15,63 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // reference a ma box HIVE
   final _mybox = Hive.box('mybox');
   final _controller = TextEditingController();
-
-  ToDoDatabase db = ToDoDatabase();
+  late ToDoDatabase db;
+  bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
-    if (_mybox.get("TODOLIST") == null) {
-      db.createInitialData();
-    } // si il existe deja des donnees
-    else {
-      db.loadData();
-    }
     super.initState();
+    _initializeDatabase();
   }
 
-  //checkbox callback
-  void checkBoxChanged(bool? value, int index) {
+  Future<void> _initializeDatabase() async {
+    db = ToDoDatabase();
+    if (_mybox.get("TODOLIST") == null) {
+      db.createInitialData();
+    } else {
+      db.loadData();
+    }
     setState(() {
-      db.toDoList[index][1] = !db.toDoList[index][1];
+      _isLoading = false;
+    });
+  }
+
+  // Filtrer les tâches
+  List<Task> get filteredTasks {
+    if (_searchQuery.isEmpty) return db.toDoList;
+    return db.toDoList
+        .where((task) =>
+            task.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
+  // Checkbox callback
+  void checkBoxChanged(bool? value, Task task) {
+    setState(() {
+      task.isCompleted = !task.isCompleted;
       db.updateDatabase();
     });
   }
 
-//sauvegarder une nouvelle tache
+  // Sauvegarder une nouvelle tâche
   void saveNewTask() {
     setState(() {
-      db.toDoList.add([_controller.text, false]);
+      db.toDoList.add(Task(
+        name: _controller.text,
+        isCompleted: false,
+        category: 'Autres',
+      ));
       _controller.clear();
       db.updateDatabase();
     });
     Navigator.of(context).pop();
   }
 
-// creer une nouvelle tache
+  // Créer une nouvelle tâche
   void createNewTask() {
-    db.updateDatabase();
     showDialog(
       context: context,
       builder: (context) {
@@ -64,16 +84,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // supprimer la tache
-  void deleteTask(int index) {
+  // Supprimer une tâche
+  void deleteTask(Task task) {
     setState(() {
-      db.toDoList.removeAt(index);
+      db.toDoList.remove(task);
       db.updateDatabase();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -92,20 +120,48 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      body: Column(
+        children: [
+          // Barre de recherche
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Rechercher une tâche...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+          ),
+          // Liste des tâches
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredTasks.length,
+              itemBuilder: (context, index) {
+                return TodoTile(
+                  task: filteredTasks[index],
+                  onChanged: (value) =>
+                      checkBoxChanged(value, filteredTasks[index]),
+                  deleteFunction: (context) => deleteTask(filteredTasks[index]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: createNewTask,
-        child: Icon(Icons.add),
-      ),
-      body: ListView.builder(
-        itemCount: db.toDoList.length,
-        itemBuilder: (context, index) {
-          return TodoTile(
-            taskName: db.toDoList[index][0],
-            taskCompleted: db.toDoList[index][1],
-            onChanged: (value) => checkBoxChanged(value, index),
-            deleteFunction: (context) => deleteTask(index),
-          );
-        },
+        child: const Icon(Icons.add),
       ),
     );
   }

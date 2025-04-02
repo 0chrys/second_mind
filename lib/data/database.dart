@@ -1,24 +1,76 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:second_mind/models/tasks.dart';
+import 'package:second_mind/taskcategory.dart';
 
 class ToDoDatabase {
-  List toDoList = [];
-  //reference a ma box HIVE
+  List<Task> toDoList = [];
   final _mybox = Hive.box('mybox');
-  //lancer  cette methode a la premiere ouverture de l'app
+
+  // Initialiser les catégories
+  final List<TaskCategory> categories = [
+    TaskCategory(
+      name: 'Personnel',
+      color: Colors.blue,
+      icon: Icons.person,
+    ),
+    TaskCategory(
+      name: 'Travail',
+      color: Colors.purple,
+      icon: Icons.work,
+    ),
+    TaskCategory(
+      name: 'Courses',
+      color: Colors.green,
+      icon: Icons.shopping_cart,
+    ),
+    TaskCategory(
+      name: 'Autres',
+      color: Colors.orange,
+      icon: Icons.more_horiz,
+    ),
+  ];
+
   void createInitialData() {
     toDoList = [
-      ["ranger la chambre", false],
-      ["faire les courses", true]
+      Task(
+        name: "ranger la chambre",
+        isCompleted: false,
+        category: "Personnel",
+      ),
+      Task(
+        name: "faire les courses",
+        isCompleted: true,
+        category: "Courses",
+      ),
     ];
   }
 
-  //charger les donnees  depuis  la  base de donnees
-  void loadData() {
-    toDoList = _mybox.get("TODOLIST");
+  void loadData() async {
+    List<dynamic>? data = await _mybox.get("TODOLIST");
+    if (data != null) {
+      toDoList = data
+          .map((task) => Task(
+                name: task['name'],
+                isCompleted: task['isCompleted'],
+                category: task['category'],
+                createdAt: DateTime.parse(task['createdAt']),
+              ))
+          .toList();
+    }
   }
 
-  // mettre a jourla base de donnees
-  void updateDatabase() {
-    _mybox.put("TODOLIST", toDoList);
+  void updateDatabase() async {
+    await _mybox.put(
+      "TODOLIST",
+      toDoList
+          .map((task) => {
+                'name': task.name,
+                'isCompleted': task.isCompleted,
+                'category': task.category,
+                'createdAt': task.createdAt.toIso8601String(),
+              })
+          .toList(),
+    );
   }
 }

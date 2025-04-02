@@ -20,7 +20,7 @@ class ThemeProvider with ChangeNotifier {
           elevation: 0,
         ),
         checkboxTheme: CheckboxThemeData(
-          fillColor: MaterialStateProperty.all(const Color(0xFF1976D2)),
+          fillColor: WidgetStateProperty.all(const Color(0xFF1976D2)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
           ),
@@ -58,7 +58,7 @@ class ThemeProvider with ChangeNotifier {
           elevation: 0,
         ),
         checkboxTheme: CheckboxThemeData(
-          fillColor: MaterialStateProperty.all(const Color(0xFF1E88E5)),
+          fillColor: WidgetStateProperty.all(const Color(0xFF1E88E5)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
           ),
